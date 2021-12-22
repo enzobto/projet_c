@@ -28,7 +28,7 @@ void change_case(int largeur, int longueur, int abs, int ord, char element,char 
     map[ord][abs] = element; //place un element sur la map
     }
   else{
-    printf("On tente de placer l'élément en dehors du tableau");
+    printf("On tente de placer l'élément en dehors du tableau (change_case)");
   }
 }
 
