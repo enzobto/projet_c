@@ -34,7 +34,7 @@ void change_case(int largeur, int longueur, int abs, int ord, char element,char 
 
 
 int main(){
-char map[LARGEUR][LONGUEUR] = {{}};
+char map[LARGEUR][LONGUEUR] = {{'\0'}};
 initialise_map(LARGEUR, LONGUEUR, map);
 change_case(LARGEUR, LONGUEUR, 7, 7, '@', map);
 affiche_map(LARGEUR, LONGUEUR, map);
