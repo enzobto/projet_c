@@ -121,7 +121,7 @@ int is_move_okay(int y, int x)
     return ((testch & A_CHARTEXT) == GRASS);
 }
 
-void draw_map(void)
+void draw_map(void) //Il faut changer cette fonction et afficher la map en fonction d'une matrice
 {
     int y, x;
 
