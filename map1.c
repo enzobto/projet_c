@@ -3,7 +3,7 @@
 #include <curses.h>
 #include <stdlib.h>
 
-#define GRASS     ' '
+#define GRASS     '#'
 #define WATER     '~'
 #define MOUNTAIN  '^'
 #define PLAYER    '*'
@@ -15,7 +15,7 @@
 #define PLAYER_PAIR    4
 #define VILLE_PAIR     5
 
-int is_move_okay(int y, int x);
+/* int is_move_okay(int y, int x); */ 
 void draw_map(void);
 int where(int y, int x);
 
@@ -33,7 +33,7 @@ int main(void)
 
     /* initialize colors */
     start_color();
-    init_pair(GRASS_PAIR, COLOR_YELLOW, COLOR_GREEN);
+    init_pair(GRASS_PAIR, COLOR_WHITE, COLOR_GREEN);
     init_pair(WATER_PAIR, COLOR_CYAN, COLOR_BLUE);
     init_pair(MOUNTAIN_PAIR, COLOR_BLACK, COLOR_WHITE);
     init_pair(PLAYER_PAIR, COLOR_RED, COLOR_MAGENTA);
@@ -47,120 +47,119 @@ int main(void)
 
     /* start player at lower-left */
 
-    y = LINES - 1;
-    x = 0;
+    y = LINES / 2;
+    x = COLS / 2;
+
+
+    /* On crée une mémoire pour rechanger la couleur et le caractère en dessous */
+
+    char mem_char = GRASS;
+    int mem_color = GRASS_PAIR;
+    int tmp = mem_color;
 
     do {
-                            
+
         /* by default, you get a blinking cursor - use it to
            indicate player * */
 
-        attron(COLOR_PAIR(PLAYER_PAIR));
+        attron(COLOR_PAIR(mem_color));
         mvaddch(y, x, PLAYER);
-        attroff(COLOR_PAIR(PLAYER_PAIR));
+        attroff(COLOR_PAIR(mem_color));
         move(y, x);
         refresh();
 
         ch = getch();
 
-        /* test inputted key and determine direction */
+        /* Bouger le curseur MAIS garder en memoire la case sur laquelle on est et quand on part, l'afficher a nouveau
+        !!!!! MARCHE PAS POUR LES COULEURS !!!! */
 
         switch (ch) {
         case KEY_UP:
-        case 'w':
-        case 'W':
-            if ((y > 0) && is_move_okay(y - 1, x)) {
-                if (where(y, x)){
-                attron(COLOR_PAIR(GRASS_PAIR));
-                mvaddch(y, x, GRASS);
-                attroff(COLOR_PAIR(GRASS_PAIR));
+        case 'z':
+        case 'Z':
+            if (y > 0) {
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
                 y = y - 1;
-                } else {
-                attron(COLOR_PAIR(VILLE_PAIR));
-                mvaddch(y, x, VILLE);
-                attroff(COLOR_PAIR(VILLE_PAIR));
-                y = y - 1;
-                }
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+                mem_color = mvinch(y, x) & A_COLOR;
             }
             break;
         case KEY_DOWN:
         case 's':
         case 'S':
-        if ((y < LINES - 1) && is_move_okay(y + 1, x)) {
-            if (where(y, x)){
+        if (y < LINES - 1){
                 attron(COLOR_PAIR(GRASS_PAIR));
-                mvaddch(y, x, GRASS);
+                mvaddch(y, x, mem_char);
                 attroff(COLOR_PAIR(GRASS_PAIR));
                 y = y + 1;
-                } else {
-                attron(COLOR_PAIR(VILLE_PAIR));
-                mvaddch(y, x, VILLE);
-                attroff(COLOR_PAIR(VILLE_PAIR));
-                y = y + 1;
-                }
-        }
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+            }
             break;
         case KEY_LEFT:
-        case 'a':
-        case 'A':
-        if ((x > 0) && is_move_okay(y, x - 1)) {
-            if (where(y, x)){
-                attron(COLOR_PAIR(GRASS_PAIR));
-                mvaddch(y, x, GRASS);
-                attroff(COLOR_PAIR(GRASS_PAIR));
+        case 'q':
+        case 'Q':
+        if (x > 0){
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
                 x = x - 1;
-                } else {
-                attron(COLOR_PAIR(VILLE_PAIR));
-                mvaddch(y, x, VILLE);
-                attroff(COLOR_PAIR(VILLE_PAIR));
-                x = x - 1;
-                }
-        }
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+            }
             break;
         case KEY_RIGHT:
         case 'd':
         case 'D':
-        if ((x < COLS - 1) && is_move_okay(y, x + 1)) {
-            if (where(y, x)){
-                attron(COLOR_PAIR(GRASS_PAIR));
-                mvaddch(y, x, GRASS);
-                attroff(COLOR_PAIR(GRASS_PAIR));
+        if (x < COLS - 1){
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
                 x = x + 1;
-                } else {
-                attron(COLOR_PAIR(VILLE_PAIR));
-                mvaddch(y, x, VILLE);
-                attroff(COLOR_PAIR(VILLE_PAIR));
-                x = x + 1;
-                }
-        }
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+            }
             break;
         }
     }
-    while ((ch != 'q') && (ch != 'Q'));
+    while ((ch != 'p') && (ch != 'P'));
 
     endwin();
 
     exit(0);
 }
 
-int is_move_okay(int y, int x)
+/*int is_move_okay(int y, int x)
 {
     int testch;
 
-    /* return true if the space is okay to move into */
+     return true if the space is okay to move into 
 
     testch = mvinch(y, x);
     return ((((testch & A_CHARTEXT) == GRASS)) || ((testch & A_CHARTEXT) == VILLE));
 }
+*/
 
 int where(int y, int x)
 {
     int testch;
 
-    /* regarde ou je suis haha c'est drole ca fait pas 2h que je travaille dessus */
+    /* regarde ou je suis haha c'est drole ca fait pas 1j que je travaille dessus */
 
     testch = mvinch(y, x);
-    return ((testch & A_CHARTEXT) == GRASS);
+    return ((testch & A_COLOR) == COLOR_PAIR(PLAYER_PAIR));
+}
+
+int check(int y, int x)
+{
+    int testch;
+
+    /* regarde ou je suis haha c'est drole ca fait pas 1j que je travaille dessus */
+
+    testch = mvinch(y, x);
+    return (testch & A_COLOR);
 }
 
 void draw_map(void){
