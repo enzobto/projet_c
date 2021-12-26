@@ -1,89 +1,284 @@
-#include <ncurses.h>
+/* quest.c */
 
+#include <curses.h>
+#include <stdlib.h>
 
-WINDOW *create_newwin(int height, int width, int starty, int startx);
-void destroy_win(WINDOW *local_win);
+#define GRASS     '#'
+#define WATER     '~'
+#define MOUNTAIN  '^'
+#define TROUPE      '&'
+#define CURSEUR    'O'
+#define BLUE_CITY     'X'
+#define RED_CITY     'x'
 
-int main()
-{	
-    WINDOW *my_win;
-    int startx, starty, width, height;
+#define GRASS_PAIR     1
+#define WATER_PAIR     2
+#define MOUNTAIN_PAIR  3
+#define PLAYER_PAIR    4
+#define RED_PAIR     5
+#define BLUE_PAIR   6
+
+/* int is_move_okay(int y, int x); */ 
+void draw_map(void);
+int where(int y, int x);
+
+int main(void)
+{
+    int y, x;
     int ch;
-    initscr();			/* Start curses mode 		*/
-    raw();			/* Line buffering disabled, Pass on
-				 * everty thing to me 		*/
+
+    /* initialize curses */
+
+    initscr();
+    keypad(stdscr, TRUE);
+    cbreak();
     noecho();
 
-    keypad(stdscr, TRUE);		/* I need that nifty F2 	*/
-    height = 3;
-    width = 10;
-    starty = (LINES - height) / 2;	/* Calculating for a center placement */
-    startx = (COLS - width) / 2;	/* of the window		*/
-    printw("Press F2 to exit");
-    refresh();
-     
-    my_win = create_newwin(height, width, starty, startx);
+    /* initialize colors */
+    start_color();
+    init_pair(GRASS_PAIR, COLOR_WHITE, COLOR_GREEN);
+    init_pair(WATER_PAIR, COLOR_CYAN, COLOR_BLUE);
+    init_pair(MOUNTAIN_PAIR, COLOR_BLACK, COLOR_WHITE);
+    init_pair(PLAYER_PAIR, COLOR_RED, COLOR_MAGENTA);
+    init_pair(RED_PAIR, COLOR_WHITE, COLOR_RED);
+    init_pair(BLUE_PAIR, COLOR_WHITE, COLOR_BLUE);
 
-    while((ch = getch()) != KEY_F(2))
-    {
-    printw("\nabs : %d\nord : %d ",startx,starty);
-	switch(ch)
-	{	
-	    case KEY_LEFT: 				
-		destroy_win(my_win);				
-		my_win = create_newwin(height, width, starty,--startx);	
-		break;
-	
-	    case KEY_RIGHT:
-		destroy_win(my_win);
-		my_win = create_newwin(height, width, starty,++startx);
-		break;
+    clear();
 
-	    case KEY_UP:
-		destroy_win(my_win);
-		my_win = create_newwin(height, width, --starty,startx);
-		break;
+    /* initialize the quest map */
 
-	    case KEY_DOWN:
-		destroy_win(my_win);
-		my_win = create_newwin(height, width, ++starty,startx);
-		break;	
-	}
+    draw_map();
+
+    /* start player at lower-left */
+    
+    y = LINES / 2;
+    x = COLS / 2;
+
+
+    /* On crée une mémoire pour rechanger la couleur et le caractère en dessous */
+
+    char mem_char = GRASS;
+    int mem_color = GRASS_PAIR;
+    int fut_color = GRASS_PAIR;
+    int tmp = mem_color;
+
+    do {
+
+        /* by default, you get a blinking cursor - use it to
+           indicate player * */
+
+        attron(COLOR_PAIR(mem_color));
+        mvaddch(y, x, CURSEUR);
+        attroff(COLOR_PAIR(mem_color));
+        move(y, x);
+        refresh();
+
+        ch = getch();
+
+        /* Bouger le curseur MAIS garder en memoire la case sur laquelle on est et quand on part, l'afficher a nouveau
+        !!!!! MARCHE PAS POUR LES COULEURS !!!! */
+
+        switch (ch) {
+        case KEY_UP:
+        case 'z':
+        case 'Z':
+            if (y > 0) {
+                if((mvinch(y - 1, x) & A_CHARTEXT) == '~'){
+                    fut_color = WATER_PAIR;
+                }
+                else if((mvinch(y - 1, x) & A_CHARTEXT) == '#'){
+                    fut_color = GRASS_PAIR;
+                }
+                else if((mvinch(y - 1, x) & A_CHARTEXT) == 'X'){
+                    fut_color = BLUE_PAIR ;
+                }
+                else if((mvinch(y - 1, x) & A_CHARTEXT) == 'x'){
+                    fut_color = RED_PAIR ;
+                }
+
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
+                y = y - 1;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_color = fut_color;
+                
+            }
+            break;
+        case KEY_DOWN:
+        case 's':
+        case 'S':
+        if (y < LINES - 1){
+                if((mvinch(y +  1, x) & A_CHARTEXT) == '~'){
+                    fut_color = WATER_PAIR;
+                }
+                else if((mvinch(y + 1, x) & A_CHARTEXT) == '#'){
+                    fut_color = GRASS_PAIR;
+                }
+                else if((mvinch(y + 1, x) & A_CHARTEXT) == 'X'){
+                    fut_color = BLUE_PAIR ;
+                }
+                else if((mvinch(y + 1, x) & A_CHARTEXT) == 'x'){
+                    fut_color = RED_PAIR ;
+                }
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
+                y++;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_color = fut_color;
+            }
+            break;
+        case KEY_LEFT:
+        case 'q':
+        case 'Q':
+        if (x > 0){
+                if((mvinch(y, x  - 1) & A_CHARTEXT) == '~'){
+                    fut_color = WATER_PAIR;
+                }
+                else if((mvinch(y, x - 1) & A_CHARTEXT) == '#'){
+                    fut_color = GRASS_PAIR;
+                }
+                else if((mvinch(y, x - 1) & A_CHARTEXT) == 'X'){
+                    fut_color = BLUE_PAIR ;
+                }
+                else if((mvinch(y, x - 1) & A_CHARTEXT) == 'x'){
+                    fut_color = RED_PAIR ;
+                }
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
+                x--;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_color = fut_color;
+            }
+            break;
+        case KEY_RIGHT:
+        case 'd':
+        case 'D':
+        if (x < COLS - 1){
+                if((mvinch(y, x + 1) & A_CHARTEXT) == '~'){
+                    fut_color = WATER_PAIR;
+                }
+                else if((mvinch(y, x + 1) & A_CHARTEXT) == '#'){
+                    fut_color = GRASS_PAIR;
+                }
+                else if((mvinch(y, x + 1) & A_CHARTEXT) == 'X'){
+                    fut_color = BLUE_PAIR ;
+                }
+                else if((mvinch(y, x + 1) & A_CHARTEXT) == 'x'){
+                    fut_color = RED_PAIR ;
+                }
+                attron(COLOR_PAIR(mem_color));
+                mvaddch(y, x, mem_char);
+                attroff(COLOR_PAIR(mem_color));
+                x++;
+                mem_char = mvinch(y, x) & A_CHARTEXT;
+                mem_color = mvinch(y, x) & A_COLOR;
+                mem_color = fut_color;
+            }
+            break;
+        }
     }
-    endwin();			/* End curses mode		  */
-    return 0;
+    while ((ch != 'p') && (ch != 'P'));
+
+    endwin();
+
+    exit(0);
 }
 
-WINDOW *create_newwin(int height, int width, int starty, int startx)
-{	
-    WINDOW *local_win;
-    local_win = newwin(height, width, starty, startx);
-    box(local_win, 0 , 0);		/* 0, 0 gives default characters 
-					   for the vertical and horizontal
-					    lines			*/
-    wrefresh(local_win);		/* Show that box 		*/
-    return local_win;
-}
-
-void destroy_win(WINDOW *local_win)
+/*int move_okay(int y, int x)
 {
-    	/* box(local_win, ' ', ' '); : This won't produce the desired
-  	 * result of erasing the window. It will leave it's four corners 
-	 * and so an ugly remnant of window.  */
-    
-    wborder(local_win, ' ', ' ', ' ',' ',' ',' ',' ',' ');
+    int testch;
+     return true if the space is okay to move into 
+    testch = mvinch(y, x);
+    return ((((testch & A_CHARTEXT) == GRASS)) || ((testch & A_CHARTEXT) == VILLE));
+}
+*/
 
-	/* The parameters taken are 
-	 * 1. win: the window on which to operate
-	 * 2. ls: character to be used for the left side of the window 
-	 * 3. rs: character to be used for the right side of the window 
-	 * 4. ts: character to be used for the top side of the window 
-	 * 5. bs: character to be used for the bottom side of the window 
- 	 * 6. tl: character to be used for the top left corner of the window 
-	 * 7. tr: character to be used for the top right corner of the window 
-	 * 8. bl: character to be used for the bottom left corner of the window 
-	 * 9. br: character to be used for the bottom right corner of the window */
-    
-    wrefresh(local_win);
-    delwin(local_win);
+int where(int y, int x)
+{
+    int testch;
+
+    /* regarde ou je suis haha c'est drole ca fait pas 1j que je travaille dessus */
+
+    testch = mvinch(y, x);
+    return ((testch & A_COLOR) == COLOR_PAIR(PLAYER_PAIR));
+}
+
+int check(int y, int x)
+{
+    int testch;
+
+    /* regarde ou je suis haha c'est drole ca fait pas 1j que je travaille dessus */
+
+    testch = mvinch(y, x);
+    return (testch & A_COLOR);
+}
+
+void draw_map(void){
+    int y, x;
+
+    /* draw the quest map */
+
+    /* background */
+
+    attron(COLOR_PAIR(WATER_PAIR));
+    for (y = 0; y < LINES; y++) {
+        mvhline(y, 0, WATER, COLS);
+    }
+    attroff(COLOR_PAIR(WATER_PAIR));
+
+    /* debut de l'enfer */
+
+    /* Ile en haut a gauche */
+
+    attron(COLOR_PAIR(GRASS_PAIR));
+    for (y = LINES / 4; y < (3 * LINES) / 4; y++) {
+        mvhline(y, 1, GRASS, COLS / 3);
+    }    
+    attroff(COLOR_PAIR(GRASS_PAIR));
+
+    /* Ile en haut a droite */
+
+    attron(COLOR_PAIR(GRASS_PAIR));
+    for (y = LINES / 4; y < (3 * LINES) / 4; y++) {
+        mvhline(y, (COLS * 2 )/ 3, GRASS, (COLS / 3) - 1);
+    }    
+    attroff(COLOR_PAIR(GRASS_PAIR));
+
+    /* Pont entre les deux */
+
+    attron(COLOR_PAIR(GRASS_PAIR));
+    for (y = (LINES / 2) - 2; y < (LINES / 2) + 2; y++) {
+        mvhline(y, 1, GRASS, COLS - 2);
+    }    
+    attroff(COLOR_PAIR(GRASS_PAIR));
+
+    int ordV1R = 18, absV1R = 49;
+
+    attron(COLOR_PAIR(RED_PAIR));
+    mvaddch(ordV1R, absV1R, RED_CITY); //Première ville rouge
+    attroff(COLOR_PAIR(RED_PAIR));
+
+    int ordV2R = 30, absV2R = 10;
+
+    attron(COLOR_PAIR(RED_PAIR));
+    mvaddch(ordV2R, absV2R, RED_CITY);  //Deuxième ville rouge
+    attroff(COLOR_PAIR(RED_PAIR));
+
+    int ordV1B = 30, absV1B = 200;
+
+    attron(COLOR_PAIR(BLUE_PAIR));
+    mvaddch(ordV1B, absV1B, BLUE_CITY);  //Première ville bleu
+    attroff(COLOR_PAIR(BLUE_PAIR));
+
+    int ordV2B = 15, absV2B = 170;
+
+    attron(COLOR_PAIR(BLUE_PAIR));
+    mvaddch(ordV2B, absV2B, BLUE_CITY); //Deuxième ville bleu
+    attroff(COLOR_PAIR(BLUE_PAIR));
 }
